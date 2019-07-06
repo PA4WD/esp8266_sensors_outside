@@ -133,6 +133,18 @@ float GetPressureValue()
   return bmp.readPressure() / 100.0;
 }
 
+float GetTemperatureBMPValue()
+{
+  Wire.begin(D6, D5);
+
+  while (!bmp.begin())
+  {
+    Serial.println("Could not find a valid BMP085 sensor, check wiring!");
+    delay(2000);
+  }
+  return bmp.readTemperature();
+}
+
 float GetTemperatureValue()
 {
   Wire.begin(D2, D1);
@@ -160,7 +172,15 @@ float GetHumidityValue()
 }
 
 int influxDbUpdate()
-{  
+{
+  InfluxData bmptempRow("temperature_BMP085");
+  bmptempRow.addTag("device", chipid);
+  float tb = GetTemperatureBMPValue();
+  if (isnan(tb))
+    return -1;
+  bmptempRow.addValue("value", tb);
+  influx.prepare(bmptempRow);
+
   InfluxData tempRow("temperature");
   tempRow.addTag("device", chipid);
   float t = GetTemperatureValue();
