@@ -125,8 +125,7 @@ float GetPressureValue()
 {
   Wire.begin(D6, D5);
 
-  while (!bmp.begin())
-  {
+  while (!bmp.begin()) {
     Serial.println("Could not find a valid BMP085 sensor, check wiring!");
     delay(2000);
   }
@@ -137,8 +136,7 @@ float GetTemperatureBMPValue()
 {
   Wire.begin(D6, D5);
 
-  while (!bmp.begin())
-  {
+  while (!bmp.begin()) {
     Serial.println("Could not find a valid BMP085 sensor, check wiring!");
     delay(2000);
   }
@@ -149,8 +147,7 @@ float GetTemperatureValue()
 {
   Wire.begin(D2, D1);
 
-  if (!sht31.begin(0x44))
-  { // Set to 0x45 for alternate i2c addr
+  if (!sht31.begin(0x44)) { // Set to 0x45 for alternate i2c addr
     Serial.println("Couldn't find SHT31");
     while (1)
       delay(1);
@@ -162,8 +159,7 @@ float GetHumidityValue()
 {
   Wire.begin(D2, D1);
 
-  if (!sht31.begin(0x44))
-  { // Set to 0x45 for alternate i2c addr
+  if (!sht31.begin(0x44)) { // Set to 0x45 for alternate i2c addr
     Serial.println("Couldn't find SHT31");
     while (1)
       delay(1);
@@ -173,44 +169,44 @@ float GetHumidityValue()
 
 int influxDbUpdate()
 {
+  //*********** Temp hum bar ******************************
+  float bmpTemperature = GetTemperatureBMPValue();
+  float temperature = GetTemperatureValue();
+  float humidity = GetHumidityValue();
+  float pressure = GetPressureValue();
+
+  if (isnan(humidity) || isnan(temperature) || isnan(pressure) || isnan(bmpTemperature)) {
+    return -1;
+  }
+
   InfluxData bmptempRow("temperature_BMP085");
   bmptempRow.addTag("device", chipid);
-  float tb = GetTemperatureBMPValue();
-  if (isnan(tb))
-    return -1;
-  bmptempRow.addValue("value", tb);
+  bmptempRow.addValue("value", bmpTemperature);
   influx.prepare(bmptempRow);
 
   InfluxData tempRow("temperature");
   tempRow.addTag("device", chipid);
-  float t = GetTemperatureValue();
-  if (isnan(t))
-    return -1;
-  tempRow.addValue("value", t);
+  tempRow.addValue("value", temperature);
   influx.prepare(tempRow);
 
   InfluxData humRow("humidity");
   humRow.addTag("device", chipid);
-  float h = GetHumidityValue();
-  if (isnan(h))
-    return -1;
-  humRow.addValue("value", h);
+  humRow.addValue("value", humidity);
   influx.prepare(humRow);
 
   InfluxData pressRow("pressure");
   pressRow.addTag("device", chipid);
-  float p = GetPressureValue();
-  if (isnan(p))
-    return -1;
-  pressRow.addValue("value", p);
+  pressRow.addValue("value", pressure);
   influx.prepare(pressRow);
+
+  //*********** Light sensor ******************************
+  float lux = GetLuxValue();
+  if (isnan(lux))
+    return -1;
 
   InfluxData luxRow("light");
   luxRow.addTag("device", chipid);
-  float l = GetLuxValue();
-  if (isnan(l))
-    return -1;
-  luxRow.addValue("value", l);
+  luxRow.addValue("value", lux);
   influx.prepare(luxRow);
 
   uint16_t broadband = 0;
@@ -230,8 +226,7 @@ int influxDbUpdate()
   influx.prepare(VisRow);
 
   bool ret = influx.write();
-  if (ret == false)
-  {
+  if (ret == false) {
     return -1;
   }
   return 0;
